@@ -32,15 +32,15 @@ public class RedesController {
 
 		String SO = os();
 		if (SO.contains("Windows")) {
-			lerip("ipconfig");
+			ip_Windows("ipconfig");
 		} else { // é Linux
-			lerip("ifconfig");
+			ip_Linux("ifconfig");
 
 		}
 
 	}
 
-	private void lerip(String processo) {
+	private void ip_Windows(String processo) {
 		// esse vai fazer a leitura do IP
 
 		try {
@@ -48,28 +48,22 @@ public class RedesController {
 
 			InputStream fluxo = ip.getInputStream();// lê as linhas do IP em bits
 			InputStreamReader leitor = new InputStreamReader(fluxo); // converte o fluxo de bits para algo legível
-			BufferedReader buffer = new BufferedReader(leitor); // vai ler as linhas de bit traduzidas com as
-																// informações fornecidas pelo processo filho
+			BufferedReader buffer = new BufferedReader(leitor); // vai ler as linhas de bit traduzidas com as informações fornecidas pelo processo filho
 
 			String linha = buffer.readLine();
+			StringBuffer adaptador = new StringBuffer(); //cria o buffer bonitinho sem que ele seja "recriado" a cada rodada
+			
 			 while (linha != null) {
-				if (linha.contains("Adaptador")) {
-//					a criação do buffer depende da linha conter a variável indicada.
-					StringBuffer adaptador = new StringBuffer();
+				if (linha.contains("Adaptador")) {				
+					adaptador.delete(0, adaptador.length());
 					adaptador.append(linha); // salvo o nome do adaptador para mostrar
-					linha = buffer.readLine();
-
-//					aqui estou lendo as linhas e verificando se não mudei de adaptador, se o adaptador tiver "IPv4", o código mostra ele
-					while (linha.contains("Adaptador") == false) {
-						if (linha.contains("IPv4")) {
-							adaptador.append("\n" + linha);
-							System.out.println(adaptador);
-						}
-						linha = buffer.readLine();
-					}
 				}else { // sempre vai aparecer a mensagem de erro pq a linha dá "null" na última "rodada"
-				linha = buffer.readLine();
+					if (linha.contains("IPv4")) {
+						adaptador.append("\n" + linha);
+						System.out.println(adaptador);
+					}
 				}
+				linha = buffer.readLine();
 
 			}
 			buffer.close();
@@ -82,6 +76,43 @@ public class RedesController {
 
 	}
 
+	private void ip_Linux(String processo) {
+		// esse vai fazer a leitura do IP
+
+				try {
+					Process ip = Runtime.getRuntime().exec(processo);
+
+					InputStream fluxo = ip.getInputStream();// lê as linhas do IP em bits
+					InputStreamReader leitor = new InputStreamReader(fluxo); // converte o fluxo de bits para algo legível
+					BufferedReader buffer = new BufferedReader(leitor); // vai ler as linhas de bit traduzidas com as
+																		// informações fornecidas pelo processo filho
+
+					String linha = buffer.readLine();
+					StringBuffer adaptador = new StringBuffer(); //cria o buffer bonitinho sem que ele seja "recriado" a cada rodada
+					
+					 while (linha != null) {
+						if (linha.contains("flags")) {				
+							adaptador.delete(0, adaptador.length());
+							adaptador.append(linha); // salvo o nome do adaptador para mostrar
+						}else { // sempre vai aparecer a mensagem de erro pq a linha dá "null" na última "rodada"
+							if (linha.contains("inet ")) {
+								adaptador.append("\n" + linha);
+								System.out.println(adaptador);
+							}
+						}
+						linha = buffer.readLine();
+
+					}
+					buffer.close();
+					leitor.close();
+					fluxo.close();
+
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+		
+	}
 //	3)
 	public void ping() {
 
@@ -95,7 +126,7 @@ public class RedesController {
 	}
 
 	private void lerping(String processo) {
-		
+
 		try {
 			Process ping = Runtime.getRuntime().exec(processo);
 
@@ -105,20 +136,33 @@ public class RedesController {
 			BufferedReader buffer = new BufferedReader(leitor);
 
 			String linha = buffer.readLine();
-
-			while (linha != null) {
-				if (linha.contains(" M�dia = ")) {
-					String[] palavra = linha.split("M�dia = ");
-					System.out.println("PING Médio: "+palavra[1]);
+			
+			if(processo == "PING -4 -n 10 www.google.com.br") {
+				while (linha != null) {
+					if (linha.contains(" M�dia = ")) {
+						String[] palavra = linha.split("M�dia = ");
+						System.out.println("PING Médio: " + palavra[1]);
 					}
-				linha = buffer.readLine();	
-			} 
-			buffer.close();
-			leitor.close();
-			fluxo.close();
-	
-		}catch(IOException e){
-		e.printStackTrace();
+					linha = buffer.readLine();
+				}
+				buffer.close();
+				leitor.close();
+				fluxo.close();
+			} else {
+				while (linha != null) {
+					if (linha.contains("rtt")) {
+						String[] palavra = linha.split("/");
+						System.out.println("PING Médio: " + palavra[6]);
+					}
+					linha = buffer.readLine();
+				}
+				buffer.close();
+				leitor.close();
+				fluxo.close();
+				
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
